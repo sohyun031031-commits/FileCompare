@@ -157,7 +157,8 @@ namespace FileCompare
                         var otherDirPath = Path.Combine(otherFolder ?? string.Empty, d.Name);
                         if (!Directory.Exists(otherDirPath))
                         {
-                            item.ForeColor = Color.Purple; // missing on other side
+                            // directory only on this side -> show as difference (red)
+                            item.ForeColor = Color.Red;
                         }
                         else
                         {
@@ -204,17 +205,16 @@ namespace FileCompare
                     // 상태 결정 및 색상 적용
                     if (rf == null)
                     {
-                        // file exists only on this side
-                        litem.ForeColor = Color.Purple;
+                        // 파일 이름이 다른(상대에 없는) 파일은 빨간색으로 표시
+                        litem.ForeColor = Color.Red;
                     }
                     else
                     {
-                        if (f.LastWriteTime > rf.LastWriteTime)
-                            litem.ForeColor = Color.Red; // this side is newer
-                        else if (f.LastWriteTime == rf.LastWriteTime)
-                            litem.ForeColor = Color.Black; // same
+                        // 서로 차이나는 파일은 빨간색으로 표시
+                        if (f.LastWriteTime != rf.LastWriteTime)
+                            litem.ForeColor = Color.Red;
                         else
-                            litem.ForeColor = Color.Gray; // older
+                            litem.ForeColor = Color.Black; // same
                     }
 
                     lv.Items.Add(litem);
@@ -316,8 +316,18 @@ namespace FileCompare
 
         private void btnCopyFromLeft_Click(object? sender, EventArgs e)
         {
-            var selected = lvwLeftDir.SelectedItems.Cast<ListViewItem>().ToList();
-            foreach (var item in selected)
+            // build list: selected items + items marked red (differences)
+            var itemsToCopy = new List<ListViewItem>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ListViewItem it in lvwLeftDir.Items)
+            {
+                if (it.Selected || it.ForeColor == Color.Red)
+                {
+                    if (seen.Add(it.Text)) itemsToCopy.Add(it);
+                }
+            }
+
+            foreach (var item in itemsToCopy)
             {
                 var name = item.Text;
                 var srcPath = Path.Combine(txtLeftDir.Text, name);
@@ -375,8 +385,18 @@ namespace FileCompare
 
         private void btnCopyFromRight_Click(object? sender, EventArgs e)
         {
-            var selected = lvwRightDir.SelectedItems.Cast<ListViewItem>().ToList();
-            foreach (var item in selected)
+            // build list: selected items + items marked red (differences)
+            var itemsToCopy = new List<ListViewItem>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ListViewItem it in lvwRightDir.Items)
+            {
+                if (it.Selected || it.ForeColor == Color.Red)
+                {
+                    if (seen.Add(it.Text)) itemsToCopy.Add(it);
+                }
+            }
+
+            foreach (var item in itemsToCopy)
             {
                 var name = item.Text;
                 var srcPath = Path.Combine(txtRightDir.Text, name);
